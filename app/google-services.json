@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "772084890115",
+    "project_id": "rite-medical",
+    "storage_bucket": "rite-medical.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:772084890115:android:9b4c5ab44f0e9161a42c36",
+        "android_client_info": {
+          "package_name": "com.example.rite_medical_application"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCPfM2TQsofc2R396T3zjsMpL2WxUYMJ0Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

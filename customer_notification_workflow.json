@@ -1,0 +1,464 @@
+{
+  "name": "Rite Medical - Customer Notification Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "customer-notification",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "customer-notification-webhook",
+      "notes": "🔧 CLIENT SETUP REQUIRED:\n- This webhook receives order status updates from your Android app\n- Update the webhook URL in your CartViewModel.kt\n- Ensure your app sends: orderId, orderStatus, customerEmail, customerName, orderTotal, orderItems\n- Test with Postman before connecting to your app\n\n📝 EXPECTED DATA FORMAT:\n{\n  \"orderId\": \"ORDER_12345678\",\n  \"orderStatus\": \"CONFIRMED\",\n  \"customerEmail\": \"customer@example.com\",\n  \"customerName\": \"John Doe\",\n  \"orderTotal\": 45.99,\n  \"orderItems\": [{\"productName\": \"Paracetamol\", \"quantity\": 2, \"price\": 5.99}]\n}"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "validation-check",
+              "leftValue": "={{ $json.orderId && $json.orderStatus && $json.customerEmail }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equal"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "data-validation",
+      "name": "Data Validation",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [460, 300],
+      "notes": "🔧 CLIENT SETUP REQUIRED:\n- This node validates that required fields are present\n- Modify validation conditions based on your data structure\n- Add additional validation rules if needed (email format, status values)\n- Update error handling for invalid data\n\n📝 VALIDATION RULES:\n- orderId must exist and not be empty\n- orderStatus must be one of: CONFIRMED, PAYMENT_RECEIVED, PROCESSING, SHIPPED, DELIVERED, CANCELLED\n- customerEmail must be a valid email format\n- Add more validation as needed for your business rules"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "rules": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "confirmed-status",
+                    "leftValue": "={{ $json.orderStatus }}",
+                    "rightValue": "CONFIRMED",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equal"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "outputIndex": 0
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "payment-received-status",
+                    "leftValue": "={{ $json.orderStatus }}",
+                    "rightValue": "PAYMENT_RECEIVED",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equal"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "outputIndex": 1
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "processing-status",
+                    "leftValue": "={{ $json.orderStatus }}",
+                    "rightValue": "PROCESSING",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equal"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "outputIndex": 2
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "shipped-status",
+                    "leftValue": "={{ $json.orderStatus }}",
+                    "rightValue": "SHIPPED",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equal"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "outputIndex": 3
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "delivered-status",
+                    "leftValue": "={{ $json.orderStatus }}",
+                    "rightValue": "DELIVERED",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equal"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "outputIndex": 4
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "cancelled-status",
+                    "leftValue": "={{ $json.orderStatus }}",
+                    "rightValue": "CANCELLED",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equal"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "outputIndex": 5
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "status-router",
+      "name": "Order Status Router",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [680, 300],
+      "notes": "🔧 CLIENT SETUP REQUIRED:\n- This node routes to different email templates based on order status\n- Update order status values to match your app's status values exactly\n- Add/remove routes if you have different statuses\n- Ensure status values are case-sensitive and match exactly\n\n📝 ROUTE CONFIGURATION:\nOutput 0: CONFIRMED\nOutput 1: PAYMENT_RECEIVED\nOutput 2: PROCESSING\nOutput 3: SHIPPED\nOutput 4: DELIVERED\nOutput 5: CANCELLED\n\n⚠️ IMPORTANT: Status values must match exactly what your Android app sends"
+    },
+    {
+      "parameters": {
+        "authentication": "gmailOAuth2",
+        "fromEmail": "notifications@yourmedicalapp.com",
+        "toEmail": "={{ $json.customerEmail }}",
+        "subject": "Order Confirmed - Rite Medical #{{ $json.orderId }}",
+        "messageType": "html",
+        "message": "<!DOCTYPE html>\n<html>\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Order Confirmed</title>\n    <style>\n        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }\n        .container { max-width: 600px; margin: 0 auto; padding: 20px; }\n        .header { background-color: #4CAF50; color: white; padding: 20px; text-align: center; }\n        .content { padding: 20px; background-color: #f9f9f9; }\n        .order-details { background-color: white; padding: 15px; margin: 15px 0; border-left: 4px solid #4CAF50; }\n        .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }\n    </style>\n</head>\n<body>\n    <div class=\"container\">\n        <div class=\"header\">\n            <h1>Order Confirmed!</h1>\n        </div>\n        <div class=\"content\">\n            <p>Dear {{ $json.customerName }},</p>\n            <p>Great news! Your order <strong>#{{ $json.orderId }}</strong> has been confirmed and we're preparing it for you.</p>\n            \n            <div class=\"order-details\">\n                <h3>Order Details:</h3>\n                <p><strong>Order ID:</strong> {{ $json.orderId }}</p>\n                <p><strong>Total Amount:</strong> ${{ $json.orderTotal }}</p>\n                <p><strong>Status:</strong> Confirmed</p>\n                <p><strong>Order Date:</strong> {{ new Date().toLocaleDateString() }}</p>\n            </div>\n            \n            <p>We'll notify you as soon as your payment is received and your order moves to the next stage.</p>\n            \n            <p>Thank you for choosing Rite Medical!</p>\n            \n            <p>Best regards,<br>Rite Medical Team</p>\n        </div>\n        <div class=\"footer\">\n            <p>This is an automated message. Please do not reply to this email.</p>\n            <p>For support, contact us at support@yourmedicalapp.com</p>\n        </div>\n    </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "id": "confirmed-email",
+      "name": "CONFIRMED Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [900, 200],
+      "notes": "🔧 CLIENT SETUP REQUIRED:\n- Configure Gmail OAuth2 credentials (see setup guide)\n- Replace 'notifications@yourmedicalapp.com' with your actual notification email\n- Customize email template with your brand colors and messaging\n- Update support email address\n- Add your company logo to the email template\n- Test email delivery and formatting\n\n📝 GMAIL SETUP STEPS:\n1. Go to Google Cloud Console\n2. Enable Gmail API\n3. Create OAuth2 credentials\n4. Add credentials to this node\n5. Test with a sample email\n\n⚠️ IMPORTANT: Use a dedicated email account for notifications"
+    },
+    {
+      "parameters": {
+        "authentication": "gmailOAuth2",
+        "fromEmail": "notifications@yourmedicalapp.com",
+        "toEmail": "={{ $json.customerEmail }}",
+        "subject": "Payment Received - Order #{{ $json.orderId }}",
+        "messageType": "html",
+        "message": "<!DOCTYPE html>\n<html>\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Payment Received</title>\n    <style>\n        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }\n        .container { max-width: 600px; margin: 0 auto; padding: 20px; }\n        .header { background-color: #2196F3; color: white; padding: 20px; text-align: center; }\n        .content { padding: 20px; background-color: #f9f9f9; }\n        .order-details { background-color: white; padding: 15px; margin: 15px 0; border-left: 4px solid #2196F3; }\n        .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }\n    </style>\n</head>\n<body>\n    <div class=\"container\">\n        <div class=\"header\">\n            <h1>Payment Received!</h1>\n        </div>\n        <div class=\"content\">\n            <p>Dear {{ $json.customerName }},</p>\n            <p>We've received your payment for order <strong>#{{ $json.orderId }}</strong> and your order is now being processed.</p>\n            \n            <div class=\"order-details\">\n                <h3>Payment Confirmation:</h3>\n                <p><strong>Order ID:</strong> {{ $json.orderId }}</p>\n                <p><strong>Amount Paid:</strong> ${{ $json.orderTotal }}</p>\n                <p><strong>Payment Status:</strong> Received</p>\n                <p><strong>Payment Date:</strong> {{ new Date().toLocaleDateString() }}</p>\n            </div>\n            \n            <p>Your order will now move to processing and we'll keep you updated on its progress.</p>\n            \n            <p>Thank you for your payment!</p>\n            \n            <p>Best regards,<br>Rite Medical Team</p>\n        </div>\n        <div class=\"footer\">\n            <p>This is an automated message. Please do not reply to this email.</p>\n            <p>For support, contact us at support@yourmedicalapp.com</p>\n        </div>\n    </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "id": "payment-received-email",
+      "name": "PAYMENT_RECEIVED Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [900, 300],
+      "notes": "🔧 CLIENT SETUP REQUIRED:\n- Same Gmail credentials as other email nodes\n- Customize payment confirmation message\n- Update payment processing timeline\n- Add any specific payment method details\n- Include order tracking information if available\n\n📝 EMAIL CONTENT NOTES:\n- Confirms payment receipt\n- Provides order processing timeline\n- Includes payment details\n- Sets expectations for next steps"
+    },
+    {
+      "parameters": {
+        "authentication": "gmailOAuth2",
+        "fromEmail": "notifications@yourmedicalapp.com",
+        "toEmail": "={{ $json.customerEmail }}",
+        "subject": "Order Processing - #{{ $json.orderId }}",
+        "messageType": "html",
+        "message": "<!DOCTYPE html>\n<html>\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Order Processing</title>\n    <style>\n        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }\n        .container { max-width: 600px; margin: 0 auto; padding: 20px; }\n        .header { background-color: #FF9800; color: white; padding: 20px; text-align: center; }\n        .content { padding: 20px; background-color: #f9f9f9; }\n        .order-details { background-color: white; padding: 15px; margin: 15px 0; border-left: 4px solid #FF9800; }\n        .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }\n    </style>\n</head>\n<body>\n    <div class=\"container\">\n        <div class=\"header\">\n            <h1>Order Processing</h1>\n        </div>\n        <div class=\"content\">\n            <p>Dear {{ $json.customerName }},</p>\n            <p>Your order <strong>#{{ $json.orderId }}</strong> is now being processed and prepared for delivery.</p>\n            \n            <div class=\"order-details\">\n                <h3>Processing Details:</h3>\n                <p><strong>Order ID:</strong> {{ $json.orderId }}</p>\n                <p><strong>Status:</strong> Processing</p>\n                <p><strong>Estimated Delivery:</strong> 25-30 minutes</p>\n                <p><strong>Processing Started:</strong> {{ new Date().toLocaleDateString() }}</p>\n            </div>\n            \n            <p>Our team is carefully preparing your order to ensure everything is correct and properly packaged.</p>\n            \n            <p>You'll receive another notification when your order is shipped and on its way to you.</p>\n            \n            <p>Best regards,<br>Rite Medical Team</p>\n        </div>\n        <div class=\"footer\">\n            <p>This is an automated message. Please do not reply to this email.</p>\n            <p>For support, contact us at support@yourmedicalapp.com</p>\n        </div>\n    </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "id": "processing-email",
+      "name": "PROCESSING Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [900, 400],
+      "notes": "🔧 CLIENT SETUP REQUIRED:\n- Update estimated delivery time based on your service area\n- Customize processing message for your business\n- Add any specific processing steps or quality checks\n- Include delivery area information\n- Update timeline expectations\n\n📝 DELIVERY TIMELINE:\n- Adjust 25-30 minutes based on your actual delivery times\n- Consider different timeframes for different areas\n- Include any special handling instructions"
+    },
+    {
+      "parameters": {
+        "authentication": "gmailOAuth2",
+        "fromEmail": "notifications@yourmedicalapp.com",
+        "toEmail": "={{ $json.customerEmail }}",
+        "subject": "Order Shipped - #{{ $json.orderId }}",
+        "messageType": "html",
+        "message": "<!DOCTYPE html>\n<html>\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Order Shipped</title>\n    <style>\n        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }\n        .container { max-width: 600px; margin: 0 auto; padding: 20px; }\n        .header { background-color: #9C27B0; color: white; padding: 20px; text-align: center; }\n        .content { padding: 20px; background-color: #f9f9f9; }\n        .order-details { background-color: white; padding: 15px; margin: 15px 0; border-left: 4px solid #9C27B0; }\n        .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }\n    </style>\n</head>\n<body>\n    <div class=\"container\">\n        <div class=\"header\">\n            <h1>Order Shipped!</h1>\n        </div>\n        <div class=\"content\">\n            <p>Dear {{ $json.customerName }},</p>\n            <p>Great news! Your order <strong>#{{ $json.orderId }}</strong> has been shipped and is on its way to you.</p>\n            \n            <div class=\"order-details\">\n                <h3>Shipping Details:</h3>\n                <p><strong>Order ID:</strong> {{ $json.orderId }}</p>\n                <p><strong>Status:</strong> Shipped</p>\n                <p><strong>Estimated Delivery:</strong> Within 10-15 minutes</p>\n                <p><strong>Shipped Date:</strong> {{ new Date().toLocaleDateString() }}</p>\n                <p><strong>Delivery Address:</strong> [Customer's delivery address]</p>\n            </div>\n            \n            <p>Your order is being delivered by our trusted delivery partner and should arrive shortly.</p>\n            \n            <p>Please ensure someone is available to receive the delivery.</p>\n            \n            <p>Best regards,<br>Rite Medical Team</p>\n        </div>\n        <div class=\"footer\">\n            <p>This is an automated message. Please do not reply to this email.</p>\n            <p>For support, contact us at support@yourmedicalapp.com</p>\n        </div>\n    </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "id": "shipped-email",
+      "name": "SHIPPED Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [900, 500],
+      "notes": "🔧 CLIENT SETUP REQUIRED:\n- Update delivery address field to pull from your data\n- Adjust estimated delivery time based on your service\n- Add delivery partner information if applicable\n- Include any delivery instructions or requirements\n- Add tracking information if available\n- Update delivery expectations\n\n📝 DELIVERY SETUP:\n- Configure delivery address mapping\n- Set appropriate delivery timeframes\n- Add delivery partner branding\n- Include any special delivery instructions"
+    },
+    {
+      "parameters": {
+        "authentication": "gmailOAuth2",
+        "fromEmail": "notifications@yourmedicalapp.com",
+        "toEmail": "={{ $json.customerEmail }}",
+        "subject": "Order Delivered - #{{ $json.orderId }}",
+        "messageType": "html",
+        "message": "<!DOCTYPE html>\n<html>\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Order Delivered</title>\n    <style>\n        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }\n        .container { max-width: 600px; margin: 0 auto; padding: 20px; }\n        .header { background-color: #4CAF50; color: white; padding: 20px; text-align: center; }\n        .content { padding: 20px; background-color: #f9f9f9; }\n        .order-details { background-color: white; padding: 15px; margin: 15px 0; border-left: 4px solid #4CAF50; }\n        .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }\n    </style>\n</head>\n<body>\n    <div class=\"container\">\n        <div class=\"header\">\n            <h1>Order Delivered!</h1>\n        </div>\n        <div class=\"content\">\n            <p>Dear {{ $json.customerName }},</p>\n            <p>Your order <strong>#{{ $json.orderId }}</strong> has been successfully delivered!</p>\n            \n            <div class=\"order-details\">\n                <h3>Delivery Confirmation:</h3>\n                <p><strong>Order ID:</strong> {{ $json.orderId }}</p>\n                <p><strong>Status:</strong> Delivered</p>\n                <p><strong>Delivery Date:</strong> {{ new Date().toLocaleDateString() }}</p>\n                <p><strong>Delivery Time:</strong> {{ new Date().toLocaleTimeString() }}</p>\n            </div>\n            \n            <p>Thank you for choosing Rite Medical! We hope you're satisfied with your order.</p>\n            \n            <p>If you have any questions or need assistance, please don't hesitate to contact us.</p>\n            \n            <p>We look forward to serving you again!</p>\n            \n            <p>Best regards,<br>Rite Medical Team</p>\n        </div>\n        <div class=\"footer\">\n            <p>This is an automated message. Please do not reply to this email.</p>\n            <p>For support, contact us at support@yourmedicalapp.com</p>\n        </div>\n    </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "id": "delivered-email",
+      "name": "DELIVERED Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [900, 600],
+      "notes": "🔧 CLIENT SETUP REQUIRED:\n- Customize delivery confirmation message\n- Add feedback request or review invitation\n- Include reorder information\n- Add customer satisfaction survey link\n- Update support contact information\n- Include loyalty program information if applicable\n\n📝 POST-DELIVERY ENGAGEMENT:\n- Consider adding review request\n- Include reorder incentives\n- Add customer feedback form\n- Promote loyalty program"
+    },
+    {
+      "parameters": {
+        "authentication": "gmailOAuth2",
+        "fromEmail": "notifications@yourmedicalapp.com",
+        "toEmail": "={{ $json.customerEmail }}",
+        "subject": "Order Cancelled - #{{ $json.orderId }}",
+        "messageType": "html",
+        "message": "<!DOCTYPE html>\n<html>\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Order Cancelled</title>\n    <style>\n        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }\n        .container { max-width: 600px; margin: 0 auto; padding: 20px; }\n        .header { background-color: #F44336; color: white; padding: 20px; text-align: center; }\n        .content { padding: 20px; background-color: #f9f9f9; }\n        .order-details { background-color: white; padding: 15px; margin: 15px 0; border-left: 4px solid #F44336; }\n        .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }\n    </style>\n</head>\n<body>\n    <div class=\"container\">\n        <div class=\"header\">\n            <h1>Order Cancelled</h1>\n        </div>\n        <div class=\"content\">\n            <p>Dear {{ $json.customerName }},</p>\n            <p>Your order <strong>#{{ $json.orderId }}</strong> has been cancelled.</p>\n            \n            <div class=\"order-details\">\n                <h3>Cancellation Details:</h3>\n                <p><strong>Order ID:</strong> {{ $json.orderId }}</p>\n                <p><strong>Status:</strong> Cancelled</p>\n                <p><strong>Cancellation Date:</strong> {{ new Date().toLocaleDateString() }}</p>\n                <p><strong>Order Amount:</strong> ${{ $json.orderTotal }}</p>\n            </div>\n            \n            <p>If you made a payment, it will be refunded according to our refund policy.</p>\n            \n            <p>If you have any questions about this cancellation, please contact our support team.</p>\n            \n            <p>We hope to serve you again in the future.</p>\n            \n            <p>Best regards,<br>Rite Medical Team</p>\n        </div>\n        <div class=\"footer\">\n            <p>This is an automated message. Please do not reply to this email.</p>\n            <p>For support, contact us at support@yourmedicalapp.com</p>\n        </div>\n    </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "id": "cancelled-email",
+      "name": "CANCELLED Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [900, 700],
+      "notes": "🔧 CLIENT SETUP REQUIRED:\n- Update refund policy information\n- Add specific cancellation reasons if available\n- Include reorder incentives\n- Update support contact for cancellation issues\n- Add any specific cancellation procedures\n- Include customer retention messaging\n\n📝 CANCELLATION HANDLING:\n- Clarify refund timeline\n- Add reorder incentives\n- Provide support contact\n- Include retention messaging"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"success\": true,\n  \"message\": \"Order notification processed successfully\",\n  \"orderId\": \"{{ $json.orderId }}\",\n  \"status\": \"{{ $json.orderStatus }}\",\n  \"timestamp\": \"{{ new Date().toISOString() }}\"\n}",
+        "options": {}
+      },
+      "id": "webhook-response",
+      "name": "Webhook Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1120, 300],
+      "notes": "🔧 CLIENT SETUP REQUIRED:\n- This node sends a response back to your Android app\n- Update response format if your app expects different data\n- Add any additional response fields needed\n- Include error handling for failed notifications\n- Add logging for debugging purposes\n\n📝 RESPONSE FORMAT:\n- Confirms notification was processed\n- Returns order details for verification\n- Includes timestamp for tracking\n- Can be used for app-side error handling"
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Data Validation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Data Validation": {
+      "main": [
+        [
+          {
+            "node": "Order Status Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Order Status Router": {
+      "main": [
+        [
+          {
+            "node": "CONFIRMED Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "PAYMENT_RECEIVED Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "PROCESSING Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "SHIPPED Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "DELIVERED Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "CANCELLED Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CONFIRMED Email": {
+      "main": [
+        [
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PAYMENT_RECEIVED Email": {
+      "main": [
+        [
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PROCESSING Email": {
+      "main": [
+        [
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SHIPPED Email": {
+      "main": [
+        [
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DELIVERED Email": {
+      "main": [
+        [
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CANCELLED Email": {
+      "main": [
+        [
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z",
+      "id": "customer-notifications",
+      "name": "Customer Notifications"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2024-01-01T00:00:00.000Z",
+  "versionId": "1.0.0"
+} 

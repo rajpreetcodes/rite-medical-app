@@ -54,8 +54,22 @@ fun LoginScreen(
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     
-    // Validation: Check if both fields are not empty
-    val isFormValid = emailPhone.trim().isNotEmpty() && password.trim().isNotEmpty()
+    // Email validation
+    fun isValidEmail(email: String): Boolean {
+        return email.contains("@") && email.contains(".") && email.length > 5
+    }
+    
+    // Validation states
+    val emailError = when {
+        emailPhone.isEmpty() -> null
+        !isValidEmail(emailPhone.trim()) -> "Please enter a valid email address with @"
+        else -> null
+    }
+    
+    // Validation: Check if both fields are not empty and email is valid
+    val isFormValid = emailPhone.trim().isNotEmpty() && 
+                      password.trim().isNotEmpty() && 
+                      emailError == null
 
     Box(
         modifier = Modifier
@@ -93,8 +107,21 @@ fun LoginScreen(
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                 singleLine = true,
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(12.dp),
+                isError = emailError != null
             )
+            
+            // Email validation error message
+            if (emailError != null) {
+                Text(
+                    text = emailError,
+                    color = Color(0xFFD32F2F),
+                    fontSize = 12.sp,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 16.dp, top = 4.dp)
+                )
+            }
             
             Spacer(modifier = Modifier.height(16.dp))
             

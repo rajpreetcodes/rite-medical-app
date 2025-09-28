@@ -2,6 +2,7 @@ package com.example.rite_medical_application
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -157,6 +158,7 @@ fun UserDashboardScreen(
                 .background(Color(0xFFF5F5F5))
                 .padding(paddingValues)
                 .padding(horizontal = 16.dp)
+                .verticalScroll(rememberScrollState())
         ) {
             Spacer(modifier = Modifier.height(16.dp))
             
@@ -257,7 +259,7 @@ fun UserDashboardScreen(
                 contentPadding = PaddingValues(vertical = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.height(400.dp)
             ) {
                 items(filteredProducts) { product ->
                     ProductCard(
@@ -270,6 +272,9 @@ fun UserDashboardScreen(
                     )
                 }
             }
+            
+            // Bottom spacing for better scrolling experience
+            Spacer(modifier = Modifier.height(20.dp))
         }
     }
 }

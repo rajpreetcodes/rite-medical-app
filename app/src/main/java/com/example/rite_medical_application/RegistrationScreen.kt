@@ -61,6 +61,29 @@ fun RegistrationScreen(
     var confirmPasswordVisible by remember { mutableStateOf(false) }
     var termsAccepted by remember { mutableStateOf(false) }
     
+    // Email validation
+    fun isValidEmail(email: String): Boolean {
+        return email.contains("@") && email.contains(".") && email.length > 5
+    }
+    
+    // Password validation
+    fun isValidPassword(password: String): Boolean {
+        return password.length > 6 && password.any { it.isDigit() }
+    }
+    
+    // Validation states
+    val emailError = when {
+        email.isEmpty() -> null
+        !isValidEmail(email.trim()) -> "Please enter a valid email address with @"
+        else -> null
+    }
+    
+    val passwordError = when {
+        createPassword.isEmpty() -> null
+        !isValidPassword(createPassword) -> "Password must be longer than 6 characters and contain numbers"
+        else -> null
+    }
+    
     // Validation: All fields filled, passwords match, and terms accepted
     val passwordsMatch = createPassword.isNotEmpty() && createPassword == confirmPassword
     val isFormValid = fullName.trim().isNotEmpty() && 
@@ -69,7 +92,9 @@ fun RegistrationScreen(
                       createPassword.trim().isNotEmpty() && 
                       confirmPassword.trim().isNotEmpty() && 
                       passwordsMatch && 
-                      termsAccepted
+                      termsAccepted &&
+                      emailError == null &&
+                      passwordError == null
 
     Box(
         modifier = Modifier
@@ -122,8 +147,21 @@ fun RegistrationScreen(
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                 singleLine = true,
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(12.dp),
+                isError = emailError != null
             )
+            
+            // Email validation error message
+            if (emailError != null) {
+                Text(
+                    text = emailError,
+                    color = Color(0xFFD32F2F),
+                    fontSize = 12.sp,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 16.dp, top = 4.dp)
+                )
+            }
             
             Spacer(modifier = Modifier.height(16.dp))
             
@@ -150,6 +188,7 @@ fun RegistrationScreen(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp),
+                isError = passwordError != null,
                 trailingIcon = {
                     IconButton(onClick = { createPasswordVisible = !createPasswordVisible }) {
                         Text(
@@ -161,6 +200,18 @@ fun RegistrationScreen(
                     }
                 }
             )
+            
+            // Password validation error message
+            if (passwordError != null) {
+                Text(
+                    text = passwordError,
+                    color = Color(0xFFD32F2F),
+                    fontSize = 12.sp,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 16.dp, top = 4.dp)
+                )
+            }
             
             Spacer(modifier = Modifier.height(16.dp))
             

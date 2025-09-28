@@ -77,7 +77,8 @@ import com.google.firebase.auth.FirebaseAuth
 fun CheckoutScreen(
     navController: NavController,
     cartViewModel: CartViewModel,
-    paymentViewModel: PaymentViewModel
+    paymentViewModel: PaymentViewModel,
+    couponViewModel: CouponViewModel
 ) {
     // Observe cart items
     val cartItems by cartViewModel.cartItems.collectAsState()
@@ -95,6 +96,9 @@ fun CheckoutScreen(
     
     // Show login dialog if not authenticated
     var showLoginDialog by remember { mutableStateOf(false) }
+    
+    // Observe applied coupon from ViewModel
+    val appliedCoupon by couponViewModel.appliedCoupon.collectAsState()
     
     // Handle order state changes
     LaunchedEffect(orderState) {
@@ -117,8 +121,13 @@ fun CheckoutScreen(
 
     // Simple calculations – can be moved to ViewModel later
     val deliveryFee = 2.99
-    val discount = 0.0
     val itemTotal = cartItems.sumOf { it.product.price * it.quantity }
+    
+    // Calculate discount from applied coupon
+    val discount = appliedCoupon?.let { coupon ->
+        couponViewModel.calculateDiscount(coupon, itemTotal)
+    } ?: 0.0
+    
     val originalTotal = itemTotal + deliveryFee
     val finalTotal = originalTotal - discount
 
@@ -241,7 +250,12 @@ fun CheckoutScreen(
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         // Address Row
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.clickable { 
+                                navController.navigate("address_selection") 
+                            }
+                        ) {
                             Icon(
                                 imageVector = Icons.Default.LocationOn,
                                 contentDescription = "Location",
@@ -337,32 +351,64 @@ fun CheckoutScreen(
             /* 4️⃣ Coupon Section */
             item {
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { 
+                            navController.navigate("coupon_selection/${itemTotal}") 
+                        },
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                    Column(
+                        modifier = Modifier.padding(16.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.LocalOffer,
-                            contentDescription = "Coupon",
-                            tint = Color(0xFF007AFF)
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(
-                            text = "Apply Coupon",
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium,
-                            modifier = Modifier.weight(1f)
-                        )
-                        Icon(
-                            imageVector = Icons.Default.ChevronRight,
-                            contentDescription = "Apply Coupon",
-                            tint = Color.Gray
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.LocalOffer,
+                                contentDescription = "Coupon",
+                                tint = Color(0xFF007AFF)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = if (appliedCoupon != null) "Coupon Applied" else "Apply Coupon",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                if (appliedCoupon != null) {
+                                    Text(
+                                        text = "${appliedCoupon!!.code} - ${appliedCoupon!!.title}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = Color(0xFF4CAF50)
+                                    )
+                                }
+                            }
+                            if (appliedCoupon != null) {
+                                TextButton(
+                                    onClick = { couponViewModel.removeCoupon() }
+                                ) {
+                                    Text(
+                                        text = "Remove",
+                                        color = Color(0xFFD32F2F),
+                                        fontSize = 12.sp
+                                    )
+                                }
+                                Text(
+                                    text = "-$${String.format("%.2f", discount)}",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF4CAF50)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                            }
+                            Icon(
+                                imageVector = Icons.Default.ChevronRight,
+                                contentDescription = "Apply Coupon",
+                                tint = Color.Gray
+                            )
+                        }
                     }
                 }
             }
@@ -654,6 +700,7 @@ fun CheckoutScreenPreview() {
     CheckoutScreen(
         navController = rememberNavController(), 
         cartViewModel = viewModel(),
-        paymentViewModel = viewModel()
+        paymentViewModel = viewModel(),
+        couponViewModel = viewModel()
     )
 } 

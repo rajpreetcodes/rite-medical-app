@@ -27,8 +27,9 @@ class MainActivity : ComponentActivity() {
                 
                 // Create the view models
                 val authViewModel: AuthViewModel = viewModel()
-                val cartViewModel: CartViewModel = viewModel()
-                val paymentViewModel: PaymentViewModel = viewModel()
+        val cartViewModel: CartViewModel = viewModel()
+        val paymentViewModel: PaymentViewModel = viewModel()
+        val couponViewModel: CouponViewModel = viewModel()
                 
                 // Set up NavHost
                 NavHost(
@@ -118,12 +119,38 @@ class MainActivity : ComponentActivity() {
                     
                     // Checkout screen route
                     composable("checkout") {
-                        CheckoutScreen(navController, cartViewModel, paymentViewModel)
+                        CheckoutScreen(navController, cartViewModel, paymentViewModel, couponViewModel)
                     }
                     
                     // Payment Selection screen route
                     composable("payment_selection") {
                         PaymentSelectionScreen(navController, paymentViewModel)
+                    }
+                    
+                    // Address Selection screen route
+                    composable("address_selection") {
+                        AddressScreen(navController) { selectedAddress ->
+                            // Handle address selection
+                            navController.popBackStack()
+                        }
+                    }
+                    
+                    // Coupon Selection screen route
+                    composable(
+                        route = "coupon_selection/{cartTotal}",
+                        arguments = listOf(
+                            navArgument("cartTotal") { type = NavType.StringType }
+                        )
+                    ) { backStackEntry ->
+                        val cartTotal = backStackEntry.arguments?.getString("cartTotal")?.toDoubleOrNull() ?: 0.0
+                        CouponScreen(
+                            navController = navController,
+                            cartTotal = cartTotal
+                        ) { selectedCoupon ->
+                            // Apply coupon via ViewModel
+                            couponViewModel.applyCoupon(selectedCoupon)
+                            navController.popBackStack()
+                        }
                     }
                     
                     // Order Confirmation screen route

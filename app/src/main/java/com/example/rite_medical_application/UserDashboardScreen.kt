@@ -24,6 +24,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -48,7 +49,8 @@ data class Product(
     val name: String,
     val price: Double,
     val imageUrl: String,
-    val stock: Int
+    val stock: Int,
+    val lowStockThreshold: Int = 10 // Default threshold, can be customized per product
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -109,9 +111,9 @@ fun UserDashboardScreen(
         }
     }
     
-    // Enhanced filtering logic
-    val filteredProducts = remember(searchQuery, selectedCategory, products) {
-        products.filter { product ->
+    // Enhanced filtering logic - separate in-stock and out-of-stock products
+    val (inStockProducts, outOfStockProducts) = remember(searchQuery, selectedCategory, products) {
+        val filtered = products.filter { product ->
             val matchesSearch = if (searchQuery.isBlank()) true else {
                 product.name.contains(searchQuery, ignoreCase = true)
             }
@@ -120,6 +122,12 @@ fun UserDashboardScreen(
             }
             matchesSearch && matchesCategory
         }
+        
+        // Separate in-stock and out-of-stock products
+        val inStock = filtered.filter { it.stock > 0 }
+        val outOfStock = filtered.filter { it.stock == 0 }
+        
+        Pair(inStock, outOfStock)
     }
 
     Scaffold(
@@ -158,7 +166,7 @@ fun UserDashboardScreen(
                 .background(Color(0xFFF5F5F5))
                 .padding(paddingValues)
                 .padding(horizontal = 16.dp)
-                .verticalScroll(rememberScrollState())
+                .   verticalScroll(rememberScrollState())
         ) {
             Spacer(modifier = Modifier.height(16.dp))
             
@@ -238,7 +246,11 @@ fun UserDashboardScreen(
                 items(orderAgainProducts) { product ->
                     OrderAgainCard(
                         product = product,
-                        onAddToCart = { cartViewModel.addToCart(product) }
+                        onAddToCart = { 
+                            if (product.stock > 0) {
+                                cartViewModel.addToCart(product) 
+                            }
+                        }
                     )
                 }
             }
@@ -253,22 +265,37 @@ fun UserDashboardScreen(
                 modifier = Modifier.padding(bottom = 8.dp)
             )
             
-            // Products Grid
+            // Products Grid - Show in-stock products first, then out-of-stock
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
                 contentPadding = PaddingValues(vertical = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.height(400.dp)
+                modifier = Modifier.height(600.dp)
             ) {
-                items(filteredProducts) { product ->
+                // In-stock products
+                items(inStockProducts) { product ->
                     ProductCard(
                         product = product,
                         cartViewModel = cartViewModel,
                         onClick = { 
                             val encodedName = Uri.encode(product.name)
                             navController.navigate("product_detail/$encodedName")
-                        }
+                        },
+                        isOutOfStock = false
+                    )
+                }
+                
+                // Out-of-stock products (greyed out)
+                items(outOfStockProducts) { product ->
+                    ProductCard(
+                        product = product,
+                        cartViewModel = cartViewModel,
+                        onClick = { 
+                            val encodedName = Uri.encode(product.name)
+                            navController.navigate("product_detail/$encodedName")
+                        },
+                        isOutOfStock = true
                     )
                 }
             }
@@ -348,17 +375,27 @@ fun OrderAgainCard(
             
             Spacer(modifier = Modifier.height(8.dp))
             
-            // Add Button
-            IconButton(
-                onClick = onAddToCart,
-                modifier = Modifier
-                    .background(Color(0xFF007AFF), CircleShape)
-                    .size(32.dp)
-            ) {
-                Icon(
-                    Icons.Default.Add,
-                    contentDescription = "Add to cart",
-                    tint = Color.White
+            // Add Button or Out of Stock indicator
+            if (product.stock > 0) {
+                IconButton(
+                    onClick = onAddToCart,
+                    modifier = Modifier
+                        .background(Color(0xFF007AFF), CircleShape)
+                        .size(32.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Add,
+                        contentDescription = "Add to cart",
+                        tint = Color.White
+                    )
+                }
+            } else {
+                Text(
+                    text = "Out of Stock",
+                    fontSize = 8.sp,
+                    color = Color.Gray,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
                 )
             }
         }
@@ -369,67 +406,118 @@ fun OrderAgainCard(
 fun ProductCard(
     product: Product,
     cartViewModel: CartViewModel,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    isOutOfStock: Boolean = false
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(220.dp)
+            .height(240.dp)
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isOutOfStock) Color(0xFFF5F5F5) else Color.White
+        )
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(8.dp)
-        ) {
-            // Product Image
-            AsyncImage(
-                model = product.imageUrl,
-                contentDescription = product.name,
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(100.dp)
-                    .clip(RoundedCornerShape(8.dp)),
-                contentScale = ContentScale.Crop
-            )
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            // Product Name
-            Text(
-                text = product.name,
-                fontWeight = FontWeight.Medium,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                fontSize = 14.sp
-            )
-            
-            Spacer(modifier = Modifier.height(4.dp))
-            
-            // Price and Add Button
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                    .fillMaxSize()
+                    .padding(8.dp)
             ) {
+                // Product Image
+                Box {
+                    AsyncImage(
+                        model = product.imageUrl,
+                        contentDescription = product.name,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(100.dp)
+                            .clip(RoundedCornerShape(8.dp)),
+                        contentScale = ContentScale.Crop,
+                        alpha = if (isOutOfStock) 0.5f else 1f
+                    )
+                    
+                    // Out of stock overlay
+                    if (isOutOfStock) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(100.dp)
+                                .background(
+                                    Color.Black.copy(alpha = 0.3f),
+                                    RoundedCornerShape(8.dp)
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "OUT OF STOCK",
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 10.sp
+                            )
+                        }
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                // Product Name
                 Text(
-                    text = "$${String.format("%.2f", product.price)}",
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF007AFF),
-                    fontSize = 16.sp
+                    text = product.name,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    fontSize = 14.sp,
+                    color = if (isOutOfStock) Color.Gray else Color.Black
                 )
                 
-                Button(
-                    onClick = { cartViewModel.addToCart(product) },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF007AFF)
-                    ),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                    shape = RoundedCornerShape(8.dp)
+                Spacer(modifier = Modifier.height(4.dp))
+                
+                // Stock info
+                if (product.stock <= 10 && product.stock > 0) {
+                    Text(
+                        text = "Only ${product.stock} left!",
+                        fontSize = 10.sp,
+                        color = Color(0xFFFF9500),
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                }
+                
+                // Price and Add Button
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Add", fontSize = 12.sp)
+                    Text(
+                        text = "$${String.format("%.2f", product.price)}",
+                        fontWeight = FontWeight.Bold,
+                        color = if (isOutOfStock) Color.Gray else Color(0xFF007AFF),
+                        fontSize = 16.sp
+                    )
+                    
+                    if (isOutOfStock) {
+                        Text(
+                            text = "Not Available",
+                            fontSize = 10.sp,
+                            color = Color.Gray,
+                            fontWeight = FontWeight.Bold
+                        )
+                    } else {
+                        Button(
+                            onClick = { cartViewModel.addToCart(product) },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFF007AFF)
+                            ),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text("Add", fontSize = 12.sp)
+                        }
+                    }
                 }
             }
         }

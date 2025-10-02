@@ -36,14 +36,22 @@ class CartViewModel : ViewModel() {
     private val orderRepository = OrderRepository.getInstance()
 
     fun addToCart(product: Product) {
+        // Check if product is in stock
+        if (product.stock <= 0) {
+            return // Don't add out-of-stock items
+        }
+        
         //Logic to add product or update quantity if it already exists
         val currentList = _cartItems.value.toMutableList()
         val existingItem = currentList.find { it.product.name == product.name }
 
         if (existingItem != null) {
-            val updatedItem = existingItem.copy(quantity = existingItem.quantity + 1)
-            val itemIndex = currentList.indexOf(existingItem)
-            currentList[itemIndex] = updatedItem
+            // Check if we can add more (don't exceed stock)
+            if (existingItem.quantity < product.stock) {
+                val updatedItem = existingItem.copy(quantity = existingItem.quantity + 1)
+                val itemIndex = currentList.indexOf(existingItem)
+                currentList[itemIndex] = updatedItem
+            }
         } else {
             currentList.add(CartItem(product = product, quantity = 1))
         }
@@ -82,10 +90,13 @@ class CartViewModel : ViewModel() {
         val currentList = _cartItems.value.toMutableList()
         val existingItem = currentList.find { it.product.name == item.product.name }
         if (existingItem != null) {
-            val updatedItem = existingItem.copy(quantity = existingItem.quantity + 1) //Increase quantity
-            val itemIndex = currentList.indexOf(existingItem)
-            currentList[itemIndex] = updatedItem
-            _cartItems.value = currentList
+            // Check if we can increase quantity (don't exceed stock)
+            if (existingItem.quantity < item.product.stock) {
+                val updatedItem = existingItem.copy(quantity = existingItem.quantity + 1) //Increase quantity
+                val itemIndex = currentList.indexOf(existingItem)
+                currentList[itemIndex] = updatedItem
+                _cartItems.value = currentList
+            }
         }
     }
 

@@ -90,9 +90,14 @@ fun CheckoutScreen(
     // Observe selected payment method
     val selectedPaymentMethod by paymentViewModel.selectedPaymentMethod.collectAsState()
     
-    // Check if user is authenticated
+    // Check if user is authenticated - use state to make it reactive
     val auth = FirebaseAuth.getInstance()
-    val isAuthenticated = remember { auth.currentUser != null }
+    var isAuthenticated by remember { mutableStateOf(auth.currentUser != null) }
+    
+    // Update authentication state when screen is displayed
+    LaunchedEffect(Unit) {
+        isAuthenticated = auth.currentUser != null
+    }
     
     // Show login dialog if not authenticated
     var showLoginDialog by remember { mutableStateOf(false) }
